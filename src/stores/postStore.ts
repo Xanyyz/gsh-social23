@@ -19,12 +19,35 @@ export const usePostStore = defineStore('post', {
 	}),
 
 	actions: {
-		loadMockPosts() {
-			this.posts = [
-				{ id: 1, author: 'Alice', content: 'Bonjour tout le monde !', likes: 3, likedBy: [], comments: ['Salut !', 'Hello !'] },
-				{ id: 2, author: 'Bob', content: 'Regardez cette image.', image: 'https://picsum.photos/200/150', likes: 5, likedBy: [], comments: ['Super !'] },
-				{ id: 3, author: 'Charlie', content: "Aujourd'hui il fait beau.", likes: 2, likedBy: [], comments: [] },
-			];
+		// Load posts from localStorage
+		loadPosts() {
+			const saved = localStorage.getItem('posts');
+			if (saved) {
+				this.posts = JSON.parse(saved);
+			} else {
+				this.posts = [];
+			}
+		},
+
+		// Save posts to localStorage
+		savePosts() {
+			localStorage.setItem('posts', JSON.stringify(this.posts));
+		},
+
+		// Create a new post
+		createPost(author: string, content: string, image?: string) {
+			const newPost: Post = {
+				id: Date.now(),
+				author,
+				content: content.trim(),
+				image: image?.trim() || undefined,
+				likes: 0,
+				likedBy: [],
+				comments: [],
+			};
+			this.posts.unshift(newPost);
+			this.savePosts();
+			return newPost;
 		},
 
 		// Toggle like/unlike for the current user
@@ -52,11 +75,15 @@ export const usePostStore = defineStore('post', {
 				post.likedBy.splice(idx, 1);
 				post.likes = Math.max(0, post.likes - 1);
 			}
+			this.savePosts();
 		},
 
 		addComment(id: number, comment: string) {
 			const post = this.posts.find(p => p.id === id);
-			if (post) post.comments.push(comment);
+			if (post) {
+				post.comments.push(comment);
+				this.savePosts();
+			}
 		},
 	},
 });

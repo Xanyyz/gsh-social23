@@ -18,22 +18,17 @@ export const useUserStore = defineStore('user', {
   getters: {
     isLogged: (state) => state.user !== null,
     getUserByUsername: (state) => (username: string) => state.users.find(u => u.username === username) ?? null,
+    getFollowersCount: (state) => (username: string) => state.users.filter(u => u.following?.includes(username)).length,
   },
 
   actions: {
-    // initialize users from localStorage (mock defaults if missing)
+    // initialize users from localStorage
     loadUsers() {
       const saved = localStorage.getItem('users');
       if (saved) {
         this.users = JSON.parse(saved);
       } else {
-        // mock users matching mock posts
-        this.users = [
-          { id: 1, username: 'Alice', bio: 'Étudiante en 2nde', avatar: '', following: [] },
-          { id: 2, username: 'Bob', bio: 'Prof de maths', avatar: '', following: [] },
-          { id: 3, username: 'Charlie', bio: 'Fan de météo', avatar: '', following: [] },
-        ];
-        this.saveUsers();
+        this.users = [];
       }
     },
 
