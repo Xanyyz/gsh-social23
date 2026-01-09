@@ -1,88 +1,76 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
-interface Profile {
-  _id: string; // MongoDB _id
-  username: string;
-  email?: string;
-  bio?: string;
-  avatar?: string;
-  following?: string[];
-}
+const API_URL = `http://${window.location.hostname}:3000`;
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    user: null as null | Profile,
-    token: localStorage.getItem("token") as string | null, // garder le token après refresh
+    user: null,
+    users: [],
+    token: localStorage.getItem("token") || null,
   }),
 
   getters: {
     isLogged: (state) => state.user !== null,
+    getUserByUsername: (state) => (username) =>
+      state.users.find(u => u.username === username),
+    isFollowing: (state) => (username) =>
+      state.user?.following?.includes(username),
+    getFollowersCount: (state) => (username) => {
+      const user = state.users.find(u => u.username === username);
+      return user?.followers?.length || 0;
+    }
   },
 
   actions: {
-    // Inscription
-    async register(username: string, email: string, password: string) {
-      await axios.post("http://localhost:3000/register", { username, email, password });
+    async loadUsers() {
+      const res = await axios.get(`${API_URL}/users`);
+      this.users = res.data;
     },
 
-    // Connexion
-    async login(email: string, password: string) {
-      const res = await axios.post("http://localhost:3000/login", { email, password });
+    loadUser() {
+      const saved = localStorage.getItem("user");
+      if (saved) this.user = JSON.parse(saved);
+    },
+
+    async login(email, password) {
+      const res = await axios.post(`${API_URL}/login`, { email, password });
       this.token = res.data.token;
       localStorage.setItem("token", this.token);
 
-      const profileRes = await axios.get("http://localhost:3000/profile", {
+      const profile = await axios.get(`${API_URL}/profile`, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
-      this.user = profileRes.data;
+
+      this.user = profile.data;
       localStorage.setItem("user", JSON.stringify(this.user));
     },
 
-    // Déconnexion
-    logout() {
-      this.user = null;
-      this.token = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    },
-
-    // Charger l’utilisateur depuis localStorage (utile au démarrage)
-    loadUser() {
-      const savedUser = localStorage.getItem("user");
-      if (savedUser) {
-        this.user = JSON.parse(savedUser);
-      }
-    },
-
-    // Mise à jour du profil
-    async updateProfile(data: { bio?: string; avatar?: string }) {
-      if (!this.token) return;
-      const res = await axios.put("http://localhost:3000/profile", data, {
+    async updateProfile(data) {
+      const res = await axios.put(`${API_URL}/profile`, data, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
+
       this.user = res.data;
       localStorage.setItem("user", JSON.stringify(this.user));
     },
 
-    // Suivre un utilisateur
-    async follow(username: string) {
-      if (!this.token) return;
-      const res = await axios.post("http://localhost:3000/follow", { username }, {
+    async follow(username) {
+      const res = await axios.post(`${API_URL}/follow`, { username }, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
+
       this.user = res.data;
       localStorage.setItem("user", JSON.stringify(this.user));
     },
 
-    // Ne plus suivre un utilisateur
-    async unfollow(username: string) {
-      if (!this.token) return;
-      const res = await axios.post("http://localhost:3000/unfollow", { username }, {
+    async unfollow(username) {
+      const res = await axios.post(`${API_URL}/unfollow`, { username }, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
+
       this.user = res.data;
       localStorage.setItem("user", JSON.stringify(this.user));
-    },
-  },
+    }
+  }
 });

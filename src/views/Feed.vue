@@ -22,16 +22,19 @@
           Publier
         </button>
 
-        <p
-          v-if="!userStore.isLogged"
-          class="mt-2 text-sm text-gray-500"
-        >
+        <p v-if="!userStore.isLogged" class="mt-2 text-sm text-gray-500">
           Connectez-vous pour publier un post.
         </p>
       </div>
 
+      <!-- Loading -->
+      <p v-if="loading" class="text-center text-gray-500">
+        Chargement des posts...
+      </p>
+
       <!-- Posts -->
       <div
+        v-else
         v-for="post in postStore.validPosts"
         :key="post.id"
         class="bg-white border rounded-2xl shadow p-4"
@@ -98,10 +101,7 @@
             </button>
           </div>
 
-          <p
-            v-else
-            class="text-sm text-gray-400"
-          >
+          <p v-else class="text-sm text-gray-400">
             Connectez-vous pour commenter.
           </p>
         </div>
@@ -109,7 +109,7 @@
 
       <!-- No posts -->
       <p
-        v-if="postStore.validPosts.length === 0"
+        v-if="!loading && postStore.validPosts.length === 0"
         class="text-center text-gray-500"
       >
         Aucun post pour le moment.
@@ -129,9 +129,11 @@ const userStore = useUserStore()
 
 const newPost = ref('')
 const comments = ref<Record<number, string>>({})
+const loading = ref(true)
 
-onMounted(() => {
-  postStore.loadPosts()
+onMounted(async () => {
+  await postStore.loadPosts()
+  loading.value = false
 })
 
 function handleCreatePost() {
